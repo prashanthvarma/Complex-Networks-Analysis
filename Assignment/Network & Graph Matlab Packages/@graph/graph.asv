@@ -1,0 +1,292 @@
+function g = graph(varargin)
+% graph - graph object constructor
+%
+%   g = graph(adj)      adjecency matrix, give symmetric matrix for
+%   undirected graph
+%   g = graph(adj, nodeLabels) adjecency matrix with node id
+%   g = graph(elist)    edge list in cell array or numeric matrix
+%   g = graph(elist, nodeLabels) edge list in cell array
+%   g = graph(ig, nodelist) from a parent graph with node list
+%   g = graph(nNode, p) directed random graph on n vertices with edge default 
+% probability of 0.5 
+%   g = graph(nNode, p) directed random graph on n vertices with edge probability of
+%   of p
+%   g = graph('sbml_file_name.xml') build reaction network from given sbml file
+%       Matlab sbml tool box required.
+%   g = graph('file_name.sif') build graph from given Simple Interaction
+%   File (SIF). SIF is a tab delimited text file containing names of two
+%   nodes with link name in between them.
+%
+% Native graph data structure is link list and assume directed. The
+% function edges give link list. Undirected graph is archieve by setting
+% directed = 0, or set(g, 'directed', 0). Although native graph data
+% structre assume directed, this package concern more on undirected graph.
+%
+% Example:
+%   g = graph(10); % randomly generate 10-node graph
+%
+% See also: adjecency, edges
+%
+
+%
+% Kyaw Tun, RIKEN, Japan
+% 2006 Oct
+%
+
+g.nodes = [];
+g.edges = [];
+g.nodeSize = 0.015;
+g.directed = 1;
+g.modmat = [];
+nodeLabels = {};
+
+graphnames = {'group3', 'group4', 'karate'};
+graphs = {
+[0 1 1 1 0 0 0 0 0 0 0 0;1 0 1 1 0 0 0 0 0 0 0 0;1 1 0 1 1 0 0 0 1 0 0 0;1 1 1 0 0 0 0 0 0 0 0 0;0 0 1 0 0 1 1 1 0 0 0 0;0 0 0 0 1 0 1 1 0 0 0 0;0 0 0 0 1 1 0 1 0 0 0 1;0 0 0 0 1 1 1 0 0 0 0 0;0 0 1 0 0 0 0 0 0 1 1 1;0 0 0 0 0 0 0 0 1 0 1 1;0 0 0 0 0 0 0 0 1 1 0 1;0 0 0 0 0 0 1 0 1 1 1 0]
+[0 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;1 0 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;0 0 1 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0;1 1 0 1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0;0 0 0 1 0 0 1 0 0 1 0 0 0 0 0 0 0 0 0 0;0 0 0 0 0 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0;0 0 0 0 0 0 1 2 1 1 0 0 0 0 0 0 0 0 0 0;0 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 0 0 0 0;0 0 0 0 0 1 0 1 1 0 0 0 0 0 0 1 0 0 0 0;0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0;0 0 0 0 1 0 0 0 0 0 1 0 1 1 0 0 0 0 0 0;0 0 0 0 0 0 0 0 0 0 1 1 0 1 1 0 0 0 0 0;0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 0;0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 1 0 1 0;0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 1 0 1;0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 1;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 1 0;0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 0;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0]
+[0 1 1 1 1 1 1 1 0 1 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0;1 0 1 1 0 0 0 0 0 1 0 0 0 1 0 0 0 0 0 0 0 0 0 1 0 0;1 1 0 1 0 0 0 1 1 1 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 1;1 1 1 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;1 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 1;0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1;1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 0 1 0 0 1;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 0 0 0 1 0;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 1 0;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0;0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 0 0;0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 0 0 0 0 1;0 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1;1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 1 0 0 0 1;0 0 1 0 0 0 0 1 0 0 1 1 1 0 1 1 1 0 0 0 0 0 1 1 1 0]
+};
+
+
+if nargin >= 1
+    if nargin == 1 && ischar(varargin{1}) % a file name
+        if ismember(varargin{1}, graphnames)
+            g = graph(graphs{strmatch(varargin{1}, graphnames, 'exact')});
+            return;
+        elseif length(varargin{1}) > 3 && isequal(varargin{1}(end-3:end), '.sif')
+            % SIF file
+            [n1, link, n2] = textread(varargin{1}, '%s%s%s', 'bufsize', 16777216);
+            nodeLabels = union(n1, n2);
+            n = length(nodeLabels);
+            for k1 = 1:min(length(n1), length(n2))
+                %kn1 = strmatch(n1{k1}, nodeLabels, 'exact');
+                %kn2 = strmatch(n2{k1}, nodeLabels, 'exact');
+                kn1 = find(strcmp(nodeLabels, n1{k1}));                
+                kn2 = find(strcmp(nodeLabels, n2{k1}));
+                g.edges(end+1, 1:2) = [kn1, kn2];
+            end
+            g.directed = 0;
+        else
+            % assume SBML file
+            m = TranslateSBML(varargin{1});
+            n = length(m.species);
+            if isfield(m.species, 'id')
+                labels = {m.species.id};
+            else
+                labels = {m.species.name};
+            end
+            % first we construct incident matrix
+            % with row corresponding to metabolite and column corresponding
+            % to reactions
+            nr = length(m.reaction);
+            ic = zeros(n, nr);
+            dirs = [m.reaction.reversible];
+            for k1 = 1:length(m.reaction)
+                rs = [];
+                ps = [];
+                for k2 = 1:length(m.reaction(k1).reactant)
+                    r = strmatch(m.reaction(k1).reactant(k2).species, labels, 'exact');
+                    if isempty(r)
+                        error(['Invalid reaction: ', m.reaction(k1).name]);
+                    end
+                    rs(end+1) = r;
+                end
+                for k3 = 1:length(m.reaction(k1).product)
+                    p = strmatch(m.reaction(k1).product(k3).species, labels, 'exact');
+                    if isempty(p)
+                        error(['Invalid reaction: ', m.reaction(k1).name]);
+                    end
+                    ps(end+1) = p;
+                end
+                if isempty(ps) || isempty(rs)
+                    error(['Invalid reaction: ', m.reaction(k1).name]);
+                end
+                ic(rs,k1) = -1;
+                ic(ps,k1) = 1;
+
+            end
+            % here we can build two kind of graph
+            % enzyme graph (enzyme as node) or metabolite graph (metabolite
+            % as node)            
+            % for the time being, we will do only enzyme graph
+            
+            % before we do, there are ubiquiton like H20 it will link all
+            % enzyme incorrectly, so we remove than, we take only one
+            % reaction and one product for a reaction
+            deg = sum(abs(ic),2);
+            icc = zeros(size(ic));
+            for k1 = 1:size(ic,2)
+                rs = find(ic(:,k1)<0);
+                ps = find(ic(:,k1)>0);
+                [foo, mi] = min(deg(rs));
+                icc(rs(mi),k1) = -1;
+                [foo, mi] = min(deg(ps));
+                icc(ps(mi),k1) = 1;
+            end
+            
+            % build enzyme (reaction) as node
+            nodeLabels = {m.reaction.id};
+            n = length(nodeLabels);
+            for k1 = 1:size(icc,1)
+                igs = find(icc(k1,:)~=0);
+                for k2 = 1:length(igs)
+                    for k3 = k2+1:length(igs)
+                        g.edges(end+1,1:2) = [k2, k3];
+                    end
+                end
+            end
+            
+        end
+    elseif isequal(class(varargin{1}), 'graph')
+        if nargin >= 2 && isnumeric(varargin{2})
+            ig = varargin{1};
+            nodeIdx = varargin{2};
+            clear g
+            for k = 1:length(nodeIdx)
+                g.nodes(k) = ig.nodes(nodeIdx(k));
+            end
+        end
+        if nargin >= 3 && isnumeric(varargin{3}) && size(varargin{3},2) == 2
+            inEdges = varargin{3};            
+        else
+            inEdges = ig.edges;
+        end
+        g.edges = [];
+        for k = 1:size(inEdges,1)
+            sn = find(nodeIdx == inEdges(k,1));
+            en = find(nodeIdx == inEdges(k,2));
+            if ~isempty(sn) && ~isempty(en)
+                g.edges(end+1, [1 2]) = [sn en];
+            end
+        end
+
+        g.nodeSize = ig.nodeSize;
+        g.directed = ig.directed;
+        g.modmat = [];
+        g = class(g, 'graph');
+        return;
+    elseif isnumeric(varargin{1}) && length(varargin{1}) == 1
+        % generate graph randomly
+        n = varargin{1};
+        if nargin < 2
+            p = 0.3;
+        else
+            p = varargin{2}(1);
+        end
+        ne = round(p * n * (n-1) / 2); % number of edges
+        sn = round(rand(1,ne) * n); % start node
+        en = round(rand(1,ne) * n); % end node
+        sn(sn==0 | sn>n) = [];
+        en(en==0 | en>n) = [];
+        m = min([length(sn), length(en)]);
+        sn = sn(1:m)';
+        en = en(1:m)';
+        % to remove self nodes
+        % selfnodes = find(sn==en);
+        % sn(selfnodes) = [];
+        % en(selfnodes) = [];
+        g.edges = [sn, en];        
+        g.directed = 1;       
+            
+    elseif (isnumeric(varargin{1}) || islogical(varargin{1})) && ...
+            size(varargin{1},1) == size(varargin{1},2)
+        % adjacency matrix
+        adj = varargin{1};
+        n = length(adj);
+        if size(adj,1) ~= size(adj,2)
+            error('Adjacency matrix must be square.');
+        end
+        if isequal(adj, adj')
+            g.directed = 0;
+            for k1 = 1:n
+                for k2 = k1:n
+                    if adj(k1,k2)
+                        g.edges(end+1,1:2) = [k1,k2];
+                    end
+                end
+            end
+        else
+            g.directed = 1;
+            for k1 = 1:n
+                for k2 = 1:n
+                    if adj(k1,k2)
+                        g.edges(end+1,1:2) = [k1,k2];
+                    end
+                end
+            end
+        end
+
+    elseif iscell(varargin{1}) 
+        % cell array of edges
+        n = 0;
+        for k = 1:length(varargin{1})
+            g.edges(k,1:2) = varargin{1}{k};
+            n = max([n, g.edges(k,1:2)]);
+        end
+        g.directed = 1;
+    elseif isnumeric(varargin{1}) && size(varargin{1},2) == 2 && min(varargin{1}(:)) == 1 
+        % edge list
+        % support to be cell array of edges
+        n = 0;
+        for k = 1:size(varargin{1},1)
+            g.edges(k,1:2) = varargin{1}(k,1:2);
+            n = max([n, g.edges(k,1:2)]);
+        end        
+        g.directed = 1;
+    elseif isnumeric(varargin{1}) 
+        % assume incident matrix
+        x = varargin{1};
+        if min(x(:)) > 0
+            error('Assumed incident matrix must contained negative value for link out.');
+        end
+        es = [];
+        for kx = 1:size(x,2) % along column of edge
+            ins = find(x(:,kx)>0);
+            outs = find(x(:,kx)<0);
+            for ki = ins
+                for ko = outs
+                    es(end+1,1:2) = [ki, ko];
+                end
+            end
+        end
+        g = graph(es);
+        return;
+    else
+        error('Unreconginized input format.');
+    end
+end
+
+
+if isempty(nodeLabels) && (nargin >= 2 && iscell(varargin{2}))
+    nodeLabels = varargin{2};
+    if length(nodeLabels) ~= n
+        error('Node label must be the same dimension as adjacency matrix');
+    end
+end
+if isempty(nodeLabels)
+    for k = 1:n
+        nodeLabels{k} = num2str(k);
+    end
+end
+
+r = 0.4;
+theta = 2*pi/n;
+for k = 1:n
+    positions(k,1) = 0.5 + r * cos(theta*(k-1));
+    positions(k,2) = 0.5 + r * sin(theta*(k-1));
+end
+for k = 1:n
+    g.nodes(k).label = strtrim(nodeLabels{k});
+    g.nodes(k).position = positions(k,:);
+    % g.position(k,:) = positions(k,:);
+    g.nodes(k).visited = 0;
+    g.nodes(k).timeStamp = 0;
+    g.nodes(k).color = 'w';
+    g.nodes(k).groupid = -1;
+end
+
+
+g = class(g, 'graph');
+
+        
+    

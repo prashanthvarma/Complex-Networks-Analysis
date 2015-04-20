@@ -1,0 +1,78 @@
+function [g, q] = gaPart(g, options)
+% SPECTPART - partitioning by GA
+%
+% [g, q] = gaPart(g) spectral partitioning into two groups. Partitioning
+% vector s consist 1 for group 1 and 2 for group. Return graph with
+% paritiing and modularity.
+%
+% s = gaPart(g, opts) opts is gapotimset. Default gapotimset is cross
+% fraction is 0.3, population size is 100. If input graph g has grouping,
+% initial population contained a partitioing from g.
+%
+% Example:
+%   g = graph('group3'); % get a sample graph
+%   [g Q] = specPart(g)
+%   g = gaPart(g); % generally GA partitiong is follow by spectral
+%   partition.
+%
+% See also SPECPART
+
+
+if nargin < 1
+    opts = gaoptimset('PopulationType', 'bitstring', 'Vectorized', 'off');
+end
+
+S = get(g, 'partition');
+if size(S
+% add 25% more groups
+mg = ceil(size(S,2) * 1.25);
+% number of element in new S
+nt = mg * size(S,1);
+% create initial populations
+if isempty(pop)
+    pop = rand(np, nt)>0.5;
+    s = S(:);
+    pop(1,1:length(s)) = s; % put elite member from spectral partitioning
+end
+
+x = ga(@objfun2, nt, opts);
+
+n = length(B);
+S = x2s(x);
+q = trace(S' * B * S) / (2*m);
+g = set(g, 'group', S);
+
+function obj = gaobjfun(x)
+% gaobjfun  - GA objective function
+%
+%   obj = gaobjfun(x) get modularity of given partitioning vector x from GA
+%
+% Note this function require global variable, since GA objfun could not be
+% passed argument, shit.
+%
+
+global B m
+
+S = x2s(x);
+
+obj = - trace(S' * B * S) / (2*m); % modularity, higher is better so put minus
+% fprintf('%g: %s\n', obj, mat2str(sum(S,1)));
+
+% -------------------
+function S = x2s(x)
+
+global B 
+
+% disp(size(x));
+n = length(B);
+s = reshape(x, n, length(x)/n);
+% each node can be belong to only group
+S = zeros(size(s)); S(end,size(S,2)) = 0; % add reserved group to put no-man group
+for k = 1:size(s)
+    gn = find(s(k,:));
+    if ~isempty(gn)
+        S(k,gn(1)) = 1;
+    else
+        S(k,end) = 1; % no-man group
+    end
+end
